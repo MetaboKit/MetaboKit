@@ -1,6 +1,6 @@
 # MetaboKit
  MetaboKit: a new bioinformatics workflow for untargeted metabolomics analysis with DDA-MS and DIA-MS
-
+<img src="https://github.com/PECAplus/PECAplus_cmd_line/wiki/images/PECALogo.png" align="left" width="200" height="150">
 See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) for full documentation.
 
 
