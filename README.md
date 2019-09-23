@@ -10,8 +10,7 @@ See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) 
 
 ### Linux 
 
-Executables for Linux are included.
-# [here](https://github.com/MetaboKit/MetaboKit/linux).
+Executables for Linux are included [here](https://github.com/MetaboKit/MetaboKit/linux).
 
 ### OSX (Mac)
 
