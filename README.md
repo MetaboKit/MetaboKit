@@ -10,15 +10,15 @@ See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) 
 
 ### Linux 
 
-Executables for Linux are included [here](https://github.com/MetaboKit/MetaboKit/linux).
+Executables for Linux are included.
 
 ### OSX (Mac)
 
-Executables for Mac OS X are included [here](https://github.com/MetaboKit/MetaboKit/mac).
+Executables for Mac OS X are included.
 
 ### Windows
 
-Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/MetaboKit/windows).
+Executables for 64-bit Windows are included.
 
 ## Bugs and Feedback
 
