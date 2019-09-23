@@ -12,9 +12,9 @@ See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) 
 
 Executables for Linux are included.
 
-### OSX (Mac)
+### macOS
 
-Executables for Mac OS X are included.
+Executables for MacOS are included.
 
 ### Windows
 
