@@ -19,6 +19,7 @@ Executables for 64-bit Windows are included [here](https://drive.google.com/open
 
 For bugs, questions and discussions please use the [GitHub Issues](https://github.com/MetaboKit/metabokit/issues).
 
+<!---
 ## License
 
 Copyright (C) <2020> Guoshou Teo < ephteog@nus.edu.sg >, and Hyungwon Choi < hwchoi@nus.edu.sg >, National University of Singapore.
@@ -40,3 +41,5 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 
 limitations under the License.
+
+--->
