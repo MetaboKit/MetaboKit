@@ -9,11 +9,11 @@ See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) 
 ## Installing 
 
 ### Linux
-[Executables](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1) for linux are included.
+Executables for linux are included [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1).
 
 ### Windows
 
-[Executables](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1) for 64-bit Windows are included.
+Executables for 64-bit Windows are included [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1).
 
 ## Bugs and Feedback
 
