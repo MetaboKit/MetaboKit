@@ -8,14 +8,6 @@ See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) 
 
 ## Installing 
 
-### Linux 
-
-Executables for Linux are included.
-
-### macOS
-
-Executables for MacOS are included.
-
 ### Windows
 
 Executables for 64-bit Windows are included.
@@ -26,7 +18,7 @@ For bugs, questions and discussions please use the [GitHub Issues](https://githu
 
 ## License
 
-Copyright (C) <2019> Guoshou Teo < ephteog@nus.edu.sg >, and Hyungwon Choi < hwchoi@nus.edu.sg >, National University of Singapore.
+Copyright (C) <2020> Guoshou Teo < ephteog@nus.edu.sg >, and Hyungwon Choi < hwchoi@nus.edu.sg >, National University of Singapore.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 
