@@ -25,7 +25,6 @@ def read_msp(libpath):
     lib_l=[]
     lib_dict=collections.defaultdict(list)
     libpath0=libpath.split('/libs/')[-1]
-    #if libpath0.startswith('metabokit '):
     if libpath0.startswith('metabokit '):
         libpath=libpath0.split(' ',1)[1]
         if not open(libpath):
@@ -44,9 +43,7 @@ def read_msp(libpath):
             adduct=line[line.find("[M")+1:line.rfind("]")]
         elif line.startswith('RETENTIONTIME: ') and libpath0.startswith('metabokit '):
             RT=(float(line.split(': ',1)[1])*60)
-        #elif line.startswith('Num Peaks: '):
         elif not line:
-            #lib_l.append(Ent(ms1mz,name,adduct,RT))
             lib_dict[(ms1mz,adduct,RT)].append(name)
     for (ms1mz,adduct,RT),name in lib_dict.items():
         lib_l.append(Ent(ms1mz,'---'.join(name),adduct,RT))
