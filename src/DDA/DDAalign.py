@@ -263,7 +263,7 @@ with open('ann_'+'_'.join(lib_types)+'All.txt','w') as cpd_ann, \
             rt_l.append(rt)
         cpd_ann.write("NAME:\n")
         cpd_ann.write('\n'.join(nameset)+'\n')
-        cpd_ann.write("ADDUCT: "+', '.join(adductset)+'\n')
+        cpd_ann.write("ADDUCT: "+','.join(adductset)+'\n')
         cpd_ann.write("SAMPLE, RT, DOT_PRODUCT, PEAK_AREA\n")
         for nn,dotp,premz,rt,mz_l,I_l,auc in dat:
             cpd_ann.write('{:52}{:<9.2f}{:<6.2f}{:.1f}\n'.format(mzML_files[nn][-55:-5],rt,dotp,auc if auc else 'no_ms1_feature'))

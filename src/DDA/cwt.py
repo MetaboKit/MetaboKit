@@ -58,7 +58,7 @@ def cwt(mzML_file):
         coefs = [[0]*len(eic_rt) for i in wave_scales]
         for xx,wave_scale in enumerate(wave_scales):
             for yy,wave_location in enumerate(eic_rt):
-                bd=max(wave_scale,8)
+                bd=max(wave_scale,9)
                 pos0=bisect_left(rt_all,wave_location-bd)
                 pos1=bisect_left(rt_all,wave_location+bd,lo=pos0)
                 rt_=rt_all[pos0:pos1]
@@ -137,8 +137,8 @@ def cwt(mzML_file):
 
         for rd in ridgelines:
             peak_loc=max(rd,key=operator.attrgetter('coef'))
-            pos0=bisect_left(rt_all,peak_loc.rt-peak_loc.sc)
-            pos1=bisect_left(rt_all,peak_loc.rt+peak_loc.sc,lo=pos0)
+            pos0=bisect_left(rt_all,peak_loc.rt-1.5*peak_loc.sc)
+            pos1=bisect_left(rt_all,peak_loc.rt+1.5*peak_loc.sc,lo=pos0)
             auc=sum((eic_dict.get(rt0,(0,0))[1]+eic_dict.get(rt1,(0,0))[1])*(rt1-rt0) for rt0,rt1 in zip(rt_all[pos0:],rt_all[pos0+1:pos1]))/2
             if min_auc<auc:# and peak_loc.sc<=len(rd):#ridge length
                 rt_sub=[rt for rt in rt_all[pos0:pos1] if rt in eic_dict]
