@@ -29,44 +29,46 @@ wave_scales=[x/2 for x in list(range(peak_w[1]+2,peak_w[0]-3,-2))]
 wave_scales=[1.5]+list(range(2,25))+list(range(25,99,2))
 ws0=bisect_left(wave_scales,peak_w[0]/2)
 ws1=bisect_left(wave_scales,peak_w[1]/2,lo=ws0)
-wave_scales=wave_scales[:ws1+1+1][::-1]
+wave_scales=wave_scales[:ws1+1+1]#[::-1]
 wave_sqrt=[math.sqrt(x) for x in wave_scales]
+
+def get_EICs(bn):
+    eic_dat=open('eic_'+bn+'.txt')
+    for line in eic_dat:
+        lsp=line.rstrip('\n').split('\t')
+        if len(lsp)==3:
+            EIC.append(Point(*[float(x) for x in lsp]))
+        elif line=='-\n':
+            yield (EIC,rt_all)
+            EIC=[]
+        elif line.startswith('scan '):
+            EIC=[]
+            rt_all=sorted(float(x) for x in next(eic_dat).rstrip().split())
 
 def cwt(mzML_file):
     basename0=os.path.basename(mzML_file)
-
-    filei='eic_'+basename0+'.txt'
-
-    def get_EICs():
-        eic_dat=open(filei)
-        for line in eic_dat:
-            lsp=line.rstrip('\n').split('\t')
-            if len(lsp)==3:
-                EIC.append(Point(*[float(x) for x in lsp]))
-            elif line=='-\n':
-                yield (EIC,rt_all)
-                EIC=[]
-            elif line.startswith('scan '):
-                EIC=[]
-                rt_all=sorted(float(x) for x in next(eic_dat).rstrip().split())
 
     def findridge(eic):
         EIC,rt_all=eic
         eic_dict={pt.rt:(pt.mz,pt.I) for pt in EIC}
         eic_rt=sorted(x for x,y in eic_dict.items() if y[1]>min_feat_height)#reduce exe time
 
+
         coefs = [[0]*len(eic_rt) for i in wave_scales]
-        for xx,wave_scale in enumerate(wave_scales):
-            for yy,wave_location in enumerate(eic_rt):
-                bd=max(wave_scale,9)
-                pos0=bisect_left(rt_all,wave_location-bd)
-                pos1=bisect_left(rt_all,wave_location+bd,lo=pos0)
+        for yy,wave_loc in enumerate(eic_rt):
+            pos0=bisect_left(rt_all,wave_loc-wave_scales[-1])
+            pos1=bisect_left(rt_all,wave_loc+wave_scales[-1],lo=pos0)
+            min_=min(eic_dict[rt0][1] for rt0 in rt_all[pos0:pos1] if rt0 in eic_dict)
+            for xx,wave_scale in enumerate(wave_scales):
+                bd=max(wave_scale,8)
+                pos0=bisect_left(rt_all,wave_loc-bd)
+                pos1=bisect_left(rt_all,wave_loc+bd,lo=pos0)
                 rt_=rt_all[pos0:pos1]
                 int_I=[0]*len(rt_)
                 for i,rt0 in enumerate(rt_):
                     if rt0 in eic_dict:
-                        tsig2=((rt0 - wave_location)/wave_scale)**2
-                        int_I[i]=eic_dict[rt0][1]*math.exp(-tsig2/2)*(1.-tsig2)
+                        tsig2=((rt0 - wave_loc)/wave_scale)**2
+                        int_I[i]=(eic_dict[rt0][1]-min_)*math.exp(-tsig2/2)*(1.-tsig2)
                 coefs[xx][yy]=sum((I0+I1)*(rt1-rt0) for rt0,rt1,I0,I1 in zip(rt_,rt_[1:],int_I,int_I[1:]))/2/wave_sqrt[xx]
 
 
@@ -138,7 +140,7 @@ def cwt(mzML_file):
     with open('ms1feature_'+basename0+'.txt','w') as writepeak:
 
         peak_list=[]
-        for peaks in map(findridge, get_EICs()):
+        for peaks in map(findridge, get_EICs(basename0)):
             peak_list.extend(peaks)
 
         peak_list.sort()

@@ -60,7 +60,7 @@ SWATHs=param_dict["window_setting"].splitlines()
 min_group_size=2#int(param_dict["min_group_size"])
 min_highest_I=float(param_dict["min_highest_I"])
 group_I_threshold=min_highest_I#float(param_dict["group_I_threshold"])
-mz_space=.015
+mz_space=.010
 
 def print_eic_ms(mzML_file):
 
@@ -121,7 +121,7 @@ def print_eic_ms(mzML_file):
             pos = bisect_left(mzlist, i)
             slice_cut.append(pos)
         slice_cut.append(len(data_points))
-        for pos,pos1 in zip(slice_cut,slice_cut[2:]):
+        for pos,pos1 in zip(slice_cut,slice_cut[3:]):
             dp_sub=data_points[pos:pos1]#.tolist()
             if pos+min_group_size<pos1 and max(I for _,_,I in dp_sub)>min_highest_I:
                 eic_dict=dict() # highest intensity in this m/z range
@@ -149,7 +149,7 @@ def print_eic_ms(mzML_file):
         ofile.write('\n')
 
     with open('ms_scans_'+basename0+'.txt','w') as ofile:
-        list(map(print_pt, [ms1_scans]+ms2_scans))
+        list(map(print_pt, [ms1_scans]+[x for x in ms2_scans if not x[0].startswith('skip')]))
 
 
 list(map(print_eic_ms, mzML_files))

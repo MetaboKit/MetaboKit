@@ -45,6 +45,8 @@ def read_msp(libpath):
             RT=(float(line.split(': ',1)[1])*60)
         elif not line:
             lib_dict[(ms1mz,adduct,RT)].append(name)
+    if (ms1mz,adduct,RT) not in lib_dict or name not in lib_dict[(ms1mz,adduct,RT)]:
+        lib_dict[(ms1mz,adduct,RT)].append(name)
     for (ms1mz,adduct,RT),name in lib_dict.items():
         lib_l.append(Ent(ms1mz,'---'.join(name),adduct,RT))
     print(libpath,len(lib_l))

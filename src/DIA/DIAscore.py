@@ -179,7 +179,7 @@ def read_lib(libpath):
             datbase=('unknown' if datbase is None else datbase)
             if hmdb_dat is not None and frag_mz:
                 lib_dict[str(float(hmdb_dat[2])+cpd_list['H'])+' 1 '+','.join(frag_mz)+' '+','.join(frag_I)+' '+'M,+,H'+' NA'].append(hmdb_dat[0]+' '+hmdb_dat[1]+' '+datbase+' '+tree.findtext('id'))
-    if 'VS11' in libpath and "All.txt" not in libpath:
+    if 'VS12' in libpath and "All.txt" not in libpath:
         it_cpd=iter(line.rstrip() for line in open(libpath))
         for line in it_cpd:
             if line.startswith('NAME: '):
@@ -249,26 +249,57 @@ def get_cpds():
         lib_dict.update(read_lib(libpath))
     return lib_dict.items()
 
+def readms1peak(bn):
+    ms1peaks=[]
+    with open('ms1feature_'+bn+'.txt') as ms1peakfile:
+        for line in ms1peakfile:
+            lsp=line.rstrip().split()
+            if len(lsp)==5:
+                ms1peaks.append(Peak(*[float(x) for x in lsp],float(lsp[0])))
+    ms1peaks.sort()
+    iso_diff=1.00335
+    single=0
+    doub=0
+    peak_double=set()
+    return ms1peaks,peak_double
+
+def read_scans(bn):
+    ms1scans=[]
+    ms2scans=dict()
+    with open('ms_scans_'+bn+'.txt') as ms_sc:
+        for nn,line in enumerate(ms_sc):
+            if line.rstrip():
+                lsp=line.rstrip().split(' ',1)
+                if lsp[0]=='scan':
+                    swath_name=lsp[1]
+                    dp_scan=[]
+                else:
+                    rt=float(lsp[0])
+                    lsp=next(ms_sc).rstrip().split()
+                    mz_list=[float(x) for x in lsp]
+                    lsp=next(ms_sc).rstrip().split()
+                    I_list=[float(x) for x in lsp]
+                    for mz,I in zip(mz_list,I_list):
+                        dp_scan.append(Point(mz,rt,I))
+            else:
+                if swath_name=='MS1':
+                    ms1scans=sorted(dp_scan)
+                else:
+                    ms2scans[swath_name]=sorted(dp_scan)
+
+    sswath=sorted(ms2scans.keys(),key=lambda x: float(x.split()[0]))
+    startpt=[float(x.split()[0]) for x in sswath[1:]]
+    end__pt=[float(x.split()[1]) for x in sswath[:-1]]
+    minmz=float(sswath[0].split()[0])
+    maxmz=float(sswath[-1].split()[1])
+    return ms1scans,ms2scans,sswath,startpt,end__pt,minmz,maxmz
+
 
 def print_score(mzML_file):
     basename0=os.path.basename(mzML_file)
     print(basename0)
 
-    def readms1peak():
-        ms1peaks=[]
-        with open('ms1feature_'+basename0+'.txt') as ms1peakfile:
-            for line in ms1peakfile:
-                lsp=line.rstrip().split()
-                if len(lsp)==5:
-                    ms1peaks.append(Peak(*[float(x) for x in lsp],float(lsp[0])))
-        ms1peaks.sort()
-        iso_diff=1.00335
-        single=0
-        doub=0
-        peak_double=set()
-        return ms1peaks,peak_double
-
-    ms1peaks,peak_double=readms1peak()
+    ms1peaks,peak_double=readms1peak(basename0)
 
 
     for n,line in enumerate(open('eic_'+basename0+'.txt')):
@@ -279,38 +310,7 @@ def print_score(mzML_file):
     rtset=sorted(rtdict.keys())
 
 
-    def read_scans():
-        ms1scans=[]
-        ms2scans=dict()
-        with open('ms_scans_'+basename0+'.txt') as ms_sc:
-            for nn,line in enumerate(ms_sc):
-                if line.rstrip():
-                    lsp=line.rstrip().split(' ',1)
-                    if lsp[0]=='scan':
-                        swath_name=lsp[1]
-                        dp_scan=[]
-                    else:
-                        rt=float(lsp[0])
-                        lsp=next(ms_sc).rstrip().split()
-                        mz_list=[float(x) for x in lsp]
-                        lsp=next(ms_sc).rstrip().split()
-                        I_list=[float(x) for x in lsp]
-                        for mz,I in zip(mz_list,I_list):
-                            dp_scan.append(Point(mz,rt,I))
-                else:
-                    if swath_name=='MS1':
-                        ms1scans=sorted(dp_scan)
-                    else:
-                        ms2scans[swath_name]=sorted(dp_scan)
-
-        sswath=sorted(ms2scans.keys(),key=lambda x: float(x.split()[0]))
-        startpt=[float(x.split()[0]) for x in sswath[1:]]
-        end__pt=[float(x.split()[1]) for x in sswath[:-1]]
-        minmz=float(sswath[0].split()[0])
-        maxmz=float(sswath[-1].split()[1])
-        return ms1scans,ms2scans,sswath,startpt,end__pt,minmz,maxmz
-
-    ms1scans,ms2scans,sswath,startpt,end__pt,minmz,maxmz=read_scans()
+    ms1scans,ms2scans,sswath,startpt,end__pt,minmz,maxmz=read_scans(basename0)
 
     cpd_quant=open('quant_'+'_'.join(lib_types)+'_'+basename0+'.txt','w')
     cpd_quant.write('compound\tQuantification Mode\tadduct\tmass\tRT(library)\trt\tdot_prod\tp_f_cor\tquant\n')
@@ -338,17 +338,17 @@ def print_score(mzML_file):
             frag_mz_l[nn]=f_mz-err_bd
             frag_mz_r[nn]=f_mz+err_bd
 
-        max_peaks=[]
         err_bd=bound_ppm(ms1mz*ms1ppm)
         pos0=bisect_left(ms1peaks,(ms1mz-err_bd,))
         pos1=bisect_left(ms1peaks,(ms1mz+err_bd,))
         pseudo_feat=[]#pseudo feature for entries w/o feature
         ms1peaks_match=[x for x in ms1peaks[pos0:pos1] if not isinstance(RT,float) or abs(RT-x.rt)<rt_diff]
         if ms2_auc_no_feat and not ms1peaks_match and isinstance(RT,float):#if no feature found and RT in library
-            pseudo_feat.append(Peak(mz=ms1mz,rt=RT,sc=20,coef=0,auc=0,mmz=ms1mz))
+            pseudo_feat.append(Peak(mz=ms1mz,rt=RT,sc=10,coef=0,auc=0,mmz=ms1mz))
         score_peaks=[]
         for ms1peak in ms1peaks_match+pseudo_feat:
-            if not minmz<ms1peak.mz<maxmz: continue
+            if not minmz<ms1peak.mz<maxmz:
+                continue
             pos0=bisect_left(startpt,ms1peak.mz)
             pos1=bisect_left(end__pt,ms1peak.mz)
             if pos0==pos1: # ms1peak in one window only
@@ -380,41 +380,39 @@ def print_score(mzML_file):
                                 f_dict[pt.rt]=pt.I
                         ms2_maxI=[f_dict.get(rt,0.) for rt in ms1rt]
                         pfc[nn]=cos_sim(p_maxI,ms2_maxI)
-                        ms2_auc[nn]=sum((f_dict.get(rt0,0.)+f_dict.get(rt1,0.))*(rt1-rt0) for rt0,rt1 in zip(ms1rt,ms1rt[1:]))/2
+                        ms2_auc[nn]=sum((I0+I1)*(rt1-rt0) for rt0,rt1,I0,I1 in zip(ms1rt,ms1rt[1:],ms2_maxI,ms2_maxI[1:]))/2
+            ms1_auc=sum((I0+I1)*(rt1-rt0) for rt0,rt1,I0,I1 in zip(ms1rt,ms1rt[1:],p_maxI,p_maxI[1:]))/2
             ssm=cos_sim0(frag_I,ms2_I)
-            score_peaks.append((ssm,pfc,ms1peak,ms2_auc))
+            score_peaks.append((ssm,pfc,ms1peak,ms2_auc,ms1_auc))
         if score_peaks:
             score_peaks.sort(reverse=True)
-            max_score_peaks=score_peaks[:1]
+            max_score_peaks=[score_peaks[0]]
             for x in score_peaks[1:]:
                 if max_score_peaks[0][0]-x[0]<.1:
                     max_score_peaks.append(x)
                 else:
                     break
             max_peak=max(max_score_peaks,key=lambda x:x[2].auc) #pick top scoring ms2 for each entry, if score difference is insignificant use auc
-            max_peaks.append((name,adduct,ms1mz,RT,frag_mz,frag_ann,max_peak))
-        return max_peaks
+            return (name,adduct,ms1mz,RT,frag_mz,frag_ann,max_peak)
+        return False
 
 
-    def print_mp(mps):
-        for mp in mps:
-            name,adduct,ms1mz,RT,frag_mz,frag_ann,max_peak=mp
-            if len(max_peak[1])>2:
-                ms1pfc=sorted(max_peak[1])[-2]#nth largest pfc
-            else:
-                ms1pfc=min(max_peak[1])
-            if max_peak[0]>=MS2_score and ms1pfc>=pfcor:
-                cpd_quant.write(name+'\tMS1\t'+adduct+'\t'+str(ms1mz)+'\t'+str(RT)+'\t'+str(max_peak[2].rt)+'\t'+str(max_peak[0])+'\t'+str(ms1pfc)+'\t'+str(max_peak[2].auc)+'\n')#+'\t'+','.join(str(x) for x in max_peak[3])+'\n')
-                for f_mz,f_ann,ms2_pfc,ms2_auc in zip(frag_mz,frag_ann,max_peak[1],max_peak[3]):
-                    if ms2_pfc>-.5:
-                        cpd_quant.write(name+'\t'+f_ann+'\t'+adduct+'\t'+str(f_mz)+'\t'+str(RT)+'\t'+str(max_peak[2].rt)+'\t'+str(max_peak[0])+'\t'+str(ms2_pfc)+'\t'+str(ms2_auc)+'\n')
+    def print_mp(mp):
+        name,adduct,ms1mz,RT,frag_mz,frag_ann,max_peak=mp
+        if len(max_peak[1])>2:
+            ms1pfc=sorted(max_peak[1])[-2]#nth largest pfc
+        else:
+            ms1pfc=min(max_peak[1])
+        if max_peak[0]>=MS2_score and ms1pfc>=pfcor:
+            cpd_quant.write('{}\tMS1\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(name,adduct,ms1mz,RT,max_peak[2].rt,max_peak[0],ms1pfc,max_peak[4]))
+            for f_mz,f_ann,ms2_pfc,ms2_auc in zip(frag_mz,frag_ann,max_peak[1],max_peak[3]):
+                if ms2_pfc>-.5:
+                    cpd_quant.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(name,f_ann,adduct,f_mz,RT,max_peak[2].rt,max_peak[0],ms2_pfc,ms2_auc))
 
 
     for mp in map(scoring,get_cpds()):
-        print_mp(mp)
+        if mp: print_mp(mp)
 
 
-if __name__ == '__main__':
-    freeze_support()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
-        list(executor.map(print_score, mzML_files))
+list(map(print_score, mzML_files))
+

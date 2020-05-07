@@ -30,6 +30,7 @@ param_set={
         }
 param_dict=commonfn.read_param(param_set)
 
+Point=collections.namedtuple('Point',('mz rt I'))
 Spec=collections.namedtuple('Spec',('ms1mz rt mz I mz_all I_all'))
 Peak=collections.namedtuple('Peak',('mz rt sc coef auc mmz'))
 Ent=collections.namedtuple('Ent',('Mmass name mz I adduct charge rt'))
@@ -359,6 +360,58 @@ def read_ms2(ms2file):#from experimental
                         dp_scan.append(Spec(ms1mz,rt,[x for x,_ in mz_i_list],i_list,[x for _,x in I_mz_list],[x for x,_ in I_mz_list]))
     return sorted(dp_scan)
 
+def readms1peak(bn):
+    ms1peaks=[]
+    with open('ms1feature_'+bn+'.txt') as ms1peakfile:
+        for line in ms1peakfile:
+            lsp=line.rstrip().split()
+            if len(lsp)==5:
+                ms1peaks.append(Peak(*[float(x) for x in lsp],float(lsp[0])))
+    ms1peaks.sort()
+    iso_diff=1.00335
+    single=0
+    doub=0
+    peak_double=set()
+    for ii in range(len(ms1peaks)):
+        peak0=ms1peaks[ii]
+        err_bd=min(.01,bound_ppm(peak0.mz*ms1ppm))
+
+
+        pos0=bisect_left(ms1peaks,(peak0.mz-iso_diff-err_bd,))
+        pos1=bisect_left(ms1peaks,(peak0.mz-iso_diff+err_bd,),lo=pos0)
+        if pos0!=pos1:
+            peak1=min(ms1peaks[pos0:pos1],key=lambda p: abs(peak0.rt-p.rt))
+            if abs(peak0.rt-peak1.rt)<1 and peak0.auc<peak1.auc:
+                ms1peaks[ii]=Peak(*peak0[:-1],peak1.mmz)
+                if peak1.mmz==peak1.mz:
+                    single+=1
+    return ms1peaks,peak_double
+
+def read_scans(bn):
+    ms1scans=[]
+    rtset=[]
+    with open('ms_scans_'+bn+'.txt') as ms_sc:
+        for nn,line in enumerate(ms_sc):
+            if line.rstrip():
+                lsp=line.rstrip().split(' ',1)
+                if lsp[0]=='scan':
+                    swath_name=lsp[1]
+                    dp_scan=[]
+                else:
+                    rt=float(lsp[0])
+                    rtset.append(rt)
+                    lsp=next(ms_sc).rstrip().split()
+                    mz_list=[float(x) for x in lsp]
+                    lsp=next(ms_sc).rstrip().split()
+                    I_list=[float(x) for x in lsp]
+                    for mz,I in zip(mz_list,I_list):
+                        dp_scan.append(Point(mz,rt,I))
+            else:
+                if swath_name=='MS1':
+                    ms1scans=sorted(dp_scan)
+    return ms1scans,sorted(rtset)
+
+
 def print_score(mzML_file):
     basename0=os.path.basename(mzML_file)
     print(basename0)
@@ -386,34 +439,7 @@ def print_score(mzML_file):
                     ms2scans[ii]=Spec(*ms2sc[:2],new_mz,new_I,*ms2sc[-2:])
 
 
-    def readms1peak():
-        ms1peaks=[]
-        with open('ms1feature_'+basename0+'.txt') as ms1peakfile:
-            for line in ms1peakfile:
-                lsp=line.rstrip().split()
-                if len(lsp)==5:
-                    ms1peaks.append(Peak(*[float(x) for x in lsp],float(lsp[0])))
-        ms1peaks.sort()
-        iso_diff=1.00335
-        single=0
-        doub=0
-        peak_double=set()
-        for ii in range(len(ms1peaks)):
-            peak0=ms1peaks[ii]
-            err_bd=min(.01,bound_ppm(peak0.mz*ms1ppm))
-
-
-            pos0=bisect_left(ms1peaks,(peak0.mz-iso_diff-err_bd,))
-            pos1=bisect_left(ms1peaks,(peak0.mz-iso_diff+err_bd,),lo=pos0)
-            if pos0!=pos1:
-                peak1=min(ms1peaks[pos0:pos1],key=lambda p: abs(peak0.rt-p.rt))
-                if abs(peak0.rt-peak1.rt)<1 and peak0.auc<peak1.auc:
-                    ms1peaks[ii]=Peak(*peak0[:-1],peak1.mmz)
-                    if peak1.mmz==peak1.mz:
-                        single+=1
-        return ms1peaks,peak_double
-
-    ms1peaks,peak_double=readms1peak()
+    ms1peaks,peak_double=readms1peak(basename0)
 
 
     ins_f=open('isf_'+basename0+'.txt','w')
@@ -432,7 +458,7 @@ def print_score(mzML_file):
             s_peak=None
             if pos0!=pos1:
                 peak=min(ms1peaks[pos0:pos1],key=lambda p: abs(spec.rt-p.rt))
-                if abs(spec.rt-peak.rt)<peak.sc:
+                if abs(spec.rt-peak.rt)<peak.sc*1.5:
                     s_peak=peak
             if s_peak is None or s_peak.mz==s_peak.mmz: #append monoisotopic peak only
                 ms2_wp.append((spec,s_peak))
@@ -440,7 +466,8 @@ def print_score(mzML_file):
         peak_ms2=dict()
         ms2_wp_=[]
         for s,p in ms2_wp:
-            if p is None: ms2_wp_.append((s,p))
+            if p is None:
+                ms2_wp_.append((s,p))
             elif p not in peak_ms2 or abs(s.rt-p.rt)<abs(peak_ms2[p].rt-p.rt):
                 peak_ms2[p]=s
         for p,s in peak_ms2.items():
@@ -497,8 +524,6 @@ def print_score(mzML_file):
     def mass_matching(jj):
         spec,peak=ms2_wp[jj]
         adduct_match=[]
-        if peak is None and 1: #only with ms1 feature
-            return adduct_match,spec,peak
 
         if "NoMatch" in lib_types[0]:
             for adduct0,(mass0,charge0,_) in list(adduct_list.items())[:-1]:
@@ -506,7 +531,7 @@ def print_score(mzML_file):
                 err_bd=bound_ppm(Mmass*ms1ppm)
                 pos0=bisect_left(dlist,(Mmass-err_bd,))
                 pos1=bisect_left(dlist,(Mmass+err_bd,),lo=pos0)
-                adduct_match.append((adduct0,(pos0,pos1),spec))
+                adduct_match.append((adduct0,(pos0,pos1)))
         else:
             score_ent=[]
             premz=(spec.ms1mz if peak is None else peak.mz)
@@ -539,18 +564,19 @@ def print_score(mzML_file):
                                 ent_I.append(0)
                         cs=cos_sim(ent_I,ms2_I)#*sum(x for x,y in zip(ent_I,ms2_I) if y>0)/sum(ent_I)
                         if cs>MS2_score:
-                            score_ent.append((cs,ent,adduct0))
+                            score_ent.append((adduct0,cs,ent))
             if score_ent:
-                max_score_ent=max(score_ent) #pick top scoring entry
-                adduct_match.append((max_score_ent[2],max_score_ent,spec))
+                max_score_ent=max(score_ent,key=operator.itemgetter(1)) #pick top scoring entry
+                adduct_match.append(max_score_ent)
 
         for cs,ii in isf_sc[jj]: #if isf, attach data
             _,peak1=ms2_wp[ii]
-            adduct_match.append(('?',(cs,Ent(0,'ISF of (m/z={:.6f}, rt={:.3f}) {:.6f}'.format(peak1.mz,peak1.rt,peak.mz),[0],[0],None,None,None),''),spec))
+            adduct_match.append(('?',cs,Ent(0,'ISF of (m/z={:.6f}, rt={:.3f}) {:.6f}'.format(peak1.mz,peak1.rt,peak.mz),[0],[0],None,None,None)))
         return adduct_match,spec,peak
 
+    ms1scans,rtset=read_scans(basename0)
 
-    def print_ann(ann_,adduct,peak,name):
+    def print_ann(ann_,adduct,spec,peak,name):
         ann_.write('NAME:\n')
         ann_.write(name+'\n')
         adduct_c=adduct_list.get(adduct[0],('','',''))
@@ -558,20 +584,34 @@ def print_score(mzML_file):
             ann_.write('ADDUCT: -\n')
         else:
             ann_.write('ADDUCT: {} {}{}\n'.format(adduct[0],adduct_c[1],adduct_c[2]))
-        ann_.write('TARGET_M/Z, FEATURE_M/Z: {:.6f}'.format(adduct[2].ms1mz))
+        ann_.write('TARGET_M/Z, FEATURE_M/Z: {:.6f}'.format(spec.ms1mz))
         ann_.write(', no_ms1_feature_detected' if peak is None else ', '+format(peak.mz,'.6f'))
         ann_.write('\n')
-        ann_.write('SCAN_START_TIME, RT: {:.3f}'.format(adduct[2].rt))
+        ann_.write('SCAN_START_TIME, RT: {:.3f}'.format(spec.rt))
+
+        if peak is None:
+            rt_l,rt_r=spec.rt-10,spec.rt+10
+        else:
+            rt_l,rt_r=peak.rt-peak.sc*1.5,peak.rt+peak.sc*1.5
+        ms1rt=rtset[bisect_left(rtset,rt_l):bisect_left(rtset,rt_r)]
+        p_dict=dict() # highest intensities per scan bounded by m/z
+        p_area=[x for x in ms1scans[bisect_left(ms1scans,(spec.ms1mz-.01,)):bisect_left(ms1scans,(spec.ms1mz+.01,))] if rt_l<x.rt<rt_r]
+        for pt in p_area:
+            if pt.rt not in p_dict or p_dict[pt.rt]<pt.I:
+                p_dict[pt.rt]=pt.I
+        p_maxI=[p_dict.get(rt,0.) for rt in ms1rt]
+        ms1_auc=sum((I0+I1)*(rt1-rt0) for rt0,rt1,I0,I1 in zip(ms1rt,ms1rt[1:],p_maxI,p_maxI[1:]))/2
+            
         ann_.write(', no_ms1_feature_detected' if peak is None else ', '+format(peak.rt,'.3f'))
         ann_.write('\n')
-        if len(adduct[1])==3:
-            dotp=adduct[1][0]
-        elif len(adduct[1])==2:
+        if len(adduct)==3:
+            dotp=adduct[1]
+        elif len(adduct)==2:
             dotp=False
-        ann_.write('PEAK_AREA: '+('-' if peak is None else format(peak.auc,'.3f'))+'\n')
+        ann_.write('PEAK_AREA: '+str(ms1_auc)+'\n')
         ann_.write('DOT_PRODUCT: '+(format(dotp,'.3f') if dotp else '-')+'\n')
         ann_.write('EXPERIMENTAL_SPECTRUM:\n')
-        for i,mz in zip(adduct[2].I_all,adduct[2].mz_all):
+        for i,mz in zip(spec.I_all,spec.mz_all):
             ann_.write('{:.6f} {:.6g}\n'.format(mz,i))
 
 
@@ -582,13 +622,13 @@ def print_score(mzML_file):
         id_quant_ma=collections.defaultdict(list)
         for adduct_match,spec,peak in map(mass_matching, range(len(ms2_wp))):
             for adduct in adduct_match:
-                if len(adduct[1])==3: # if lipidblast
-                    name0=adduct[1][1].name
-                elif len(adduct[1])==2: #if nomatch
+                if len(adduct)==3: # if lipidblast
+                    name0=adduct[2].name
+                elif len(adduct)==2: #if nomatch
                     pos0,pos1=adduct[1]
                     nameset={x for _,x in dlist[pos0:pos1]}
                     name0='\n'.join(sorted(nameset))
-                id_quant_ma[name0,adduct[0]].append((adduct,peak))
+                id_quant_ma[name0,adduct[0]].append((adduct,spec,peak))
             if not adduct_match and "NoMatch" not in lib_types[0]:
                 una_.write("NAME: unknown_{} {} MS1 feature\n".format(uk_count,('with' if peak else 'no')))
                 uk_count+=1
@@ -613,10 +653,10 @@ def print_score(mzML_file):
     def print_all(id_quant):
         annotated_=open('ann_'+'_'.join(lib_types)+'_'+basename0+'.txt','w')
         for (name,adductid),adducts in id_quant.items():
-            for adduct,peak in adducts:
-                print_ann(annotated_,adduct,peak,name)
-                if len(adduct[1])==3:
-                    ent=adduct[1][1]
+            for adduct,spec,peak in adducts:
+                print_ann(annotated_,adduct,spec,peak,name)
+                if len(adduct)==3:
+                    ent=adduct[2]
                     annotated_.write('LIBRARY_SPECTRUM:\n')
                     for mz,i in zip(ent.mz,ent.I):
                         annotated_.write('{} {}\n'.format(mz,i))
@@ -626,7 +666,6 @@ def print_score(mzML_file):
 
 
 
-print(len(mzML_files),'mzML files')
 list(map(print_score, mzML_files))
 
 

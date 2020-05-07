@@ -151,10 +151,10 @@ for n0,names in sorted([inner for outer in [list(x.items()) for x in mz_rt_n_dic
 def format_fn(vec,fmt_str):
     return [format(float(x),fmt_str) if x else '' for x in vec]
 
-with open('quant_'+'_'.join(lib_types)+'All.txt','w') as mq:#, \
+with open('quant_'+'_'.join(lib_types)+'All.txt','w') as mq:
     lsp=line1.rstrip().split('\t')
     headx=[x[:-5] for x in mzML_files]
-    mq.write('group\t'+'\t'.join(lsp[:5])+'\t'+'\t'.join(headx)+'\t'+'\t'.join('RT_'+x for x in headx)+'\t'+'\t'.join('DOTP_'+x for x in headx)+'\t'+'\t'.join('COR_'+x for x in headx)+'\n')#+'\tprecursor-frag\twithin frag\tselected\n')
+    mq.write('group\t'+'\t'.join(lsp[:5])+'\t'+'\t'.join(headx)+'\t'+'\t'.join('RT_'+x for x in headx)+'\t'+'\t'.join('DOTP_'+x for x in headx)+'\t'+'\t'.join('COR_'+x for x in headx)+'\n')
 
 
     for n0,names in sorted([inner for outer in [list(x.items()) for x in mz_rt_n_dict.values()] for inner in outer]+mz_rt_n):
@@ -172,5 +172,3 @@ with open('quant_'+'_'.join(lib_types)+'All.txt','w') as mq:#, \
                 mq.write(str(n0)+'\t'+cpd_name+'\t'+'\t'.join(cpd[1:])+'\t'+'\t'.join(format_fn(quant_,'.2f'))+'\t'+'\t'.join(format_fn([x[1] for x in dat],'.1f'))+'\t'+'\t'.join(format_fn([x[2] for x in dat],'.2f'))+'\t'+'\t'.join(format_fn([x[3] for x in dat],'.2f'))+'\n')
                 
 
-        
-print('done')

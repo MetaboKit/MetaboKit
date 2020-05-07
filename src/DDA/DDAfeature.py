@@ -141,6 +141,17 @@ def print_eic_ms(mzML_file):
         with open('ms2spectra_'+basename0+'.txt','w') as ofile:
             print_pt2(ms2_scans)
 
+    def print_pt(ms_scans):
+        ofile.write('scan '+ms_scans[0]+'\n')
+        for scan_i in ms_scans[1:]:
+            ofile.write(str(scan_i.rt)+'\n')
+            ofile.write(' '.join(str(mz) for mz,i in zip(scan_i.mz,scan_i.I) if i>0)+'\n')
+            ofile.write(' '.join(str(i) for i in scan_i.I if i>0)+'\n')
+        ofile.write('\n')
+
+    with open('ms_scans_'+basename0+'.txt','w') as ofile:
+        print_pt(ms1_scans)
+
 
 list(map(print_eic_ms, mzML_files))
 if __name__ == '__main__':
