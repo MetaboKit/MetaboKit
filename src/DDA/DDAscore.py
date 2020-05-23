@@ -4,7 +4,6 @@ import collections
 import operator
 import sys
 import math
-import statistics
 from bisect import bisect_left
 import re
 import os
@@ -143,7 +142,7 @@ def read_lib(libpath):
             if frag_mz:
                 lib_dict[ms1mz+' '+charge+' '+','.join(frag_mz)+' '+','.join(frag_I)+' '+','.join(adduct)+' NA'].append(name)
                 nnnn+=1
-        print(list(lib_dict.keys())[0])
+        print(list(lib_dict)[0])
         print(adductset)
         print(nnn,nnnn)
     if "LipidBlast-ASCII-spectra" in libpath0:
@@ -574,7 +573,7 @@ def print_score(mzML_file):
             adduct_match.append(('?',cs,Ent(0,'ISF of (m/z={:.6f}, rt={:.3f}) {:.6f}'.format(peak1.mz,peak1.rt,peak.mz),[0],[0],None,None,None)))
         return adduct_match,spec,peak
 
-    ms1scans,rtset=read_scans(basename0)
+    ms1scans,rtall=read_scans(basename0)
 
     def print_ann(ann_,adduct,spec,peak,name):
         ann_.write('NAME:\n')
@@ -593,7 +592,7 @@ def print_score(mzML_file):
             rt_l,rt_r=spec.rt-10,spec.rt+10
         else:
             rt_l,rt_r=peak.rt-peak.sc*1.5,peak.rt+peak.sc*1.5
-        ms1rt=rtset[bisect_left(rtset,rt_l):bisect_left(rtset,rt_r)]
+        ms1rt=rtall[bisect_left(rtall,rt_l):bisect_left(rtall,rt_r)]
         p_dict=dict() # highest intensities per scan bounded by m/z
         p_area=[x for x in ms1scans[bisect_left(ms1scans,(spec.ms1mz-.01,)):bisect_left(ms1scans,(spec.ms1mz+.01,))] if rt_l<x.rt<rt_r]
         for pt in p_area:

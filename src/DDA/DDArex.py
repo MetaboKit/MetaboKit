@@ -22,11 +22,29 @@ param_set={
         "mzML_files",
         "min_highest_I",
         "num_threads",
+        "library",
+        "RT_shift",
+        "pos/neg mode",
+        "ms1_ppm",
         }
-
 param_dict=commonfn.read_param(param_set)
 
+mzML_files=sorted(glob.glob(param_dict["mzML_files"]))
+
+num_threads=int(param_dict["num_threads"])
+
+ispos=True if param_dict['pos/neg mode']=='pos' else False
+
+ms1ppm=float(param_dict['ms1_ppm'])/1e6
+
+min_group_size=2#int(param_dict["min_group_size"])
+min_highest_I=float(param_dict["min_highest_I"])
+group_I_threshold=min_highest_I#float(param_dict["group_I_threshold"])
+lib_types=param_dict["library"].splitlines()
+RT_shift=float(param_dict['RT_shift'])
+
 Point=collections.namedtuple('Point',('rt mz I'))
+Ent=collections.namedtuple('Ent',('Mmass name adduct rt'))
 
 def bin2float(node):
     d=base64.b64decode(node.findtext("./{http://psi.hupo.org/ms/mzml}binary"))
@@ -46,15 +64,46 @@ def store_scan(element):
     return Point(rtinsec,array('d',(m for m,i in zip(mz,inten) if i>0)),array('d',(i for i in inten if i>0)))
 
 
-mzML_files=sorted(glob.glob(param_dict["mzML_files"]))
 
-num_threads=int(param_dict["num_threads"])
+libpaths=[]
+script_dir=os.path.abspath(os.path.dirname(sys.argv[0]))+'/libs/'
+if 'LipidBlast' in lib_types:
+    if ispos:
+        libpaths.append(script_dir+'LipidBlast-ASCII-spectra/LipidBlast-pos.msp')
+        libpaths.extend(glob.glob(script_dir+'LipidBlast-ASCII-spectra/custom-libs/*pos.msp'))
+    else:
+        libpaths.append(script_dir+'LipidBlast-ASCII-spectra/LipidBlast-neg.msp')
+        libpaths.extend(glob.glob(script_dir+'LipidBlast-ASCII-spectra/custom-libs/*neg.msp'))
+if 'LipidBlast-fork' in lib_types:
+    if ispos:
+        libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Pos.msp')
+    else:
+        libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Neg.msp')
 
+metabokit=[]
+if any(x.startswith('metabokit ')  for x in lib_types):
+    for x in lib_types:
+        if x.startswith('metabokit '):
+            libpaths.append(x)
 
-min_group_size=2#int(param_dict["min_group_size"])
-min_highest_I=float(param_dict["min_highest_I"])
-group_I_threshold=min_highest_I#float(param_dict["group_I_threshold"])
-mz_space=.015
+def get_cpds():#from libs
+    lib_ent=[]
+    for libpath in libpaths:
+        lib_ent.extend(commonfn.read_msp(libpath))
+    lib_ent.sort()
+    lib_ent0=[]
+    for ent in lib_ent[:]:
+        if ent in lib_ent:
+            ent_sub=lib_ent[bisect_left(lib_ent,(ent.Mmass,)):bisect_left(lib_ent,(ent.Mmass+.001,))]
+            names=[]
+            for ent0 in ent_sub:
+                names.append(ent0.name)
+                lib_ent.remove(ent0)
+            lib_ent0.append(Ent(ent.Mmass,'---'.join(names),ent.adduct,ent.rt))
+    return sorted(lib_ent0)
+
+lib_ent=get_cpds()
+
 
 def print_eic_ms(mzML_file):
 
@@ -81,7 +130,7 @@ def print_eic_ms(mzML_file):
             if mslevel=='1':
                 ms1_scans.append(store_scan(element))
             elif mslevel=='2':
-                ms2_scans.append((element.find(".//*[@accession='MS:1000744']").get('value'),store_scan(element)))
+                ...
             else:
                 sys.exit()
         element.clear()
@@ -89,10 +138,6 @@ def print_eic_ms(mzML_file):
     del tree
 
     print(len(ms1_scans)-1,' MS1 scans')
-    print(len(ms2_scans)-1,' MS2 scans')
-
-
-
 
 
     def mz_slice(ms_scans):
@@ -101,56 +146,33 @@ def print_eic_ms(mzML_file):
         ofile.write('\t'.join([str(x) for x in rtdict])+'\n')
         data_points=[Point(scan.rt,mz,i) for scan in ms_scans[1:] for mz,i in zip(scan.mz,scan.I)]
         data_points.sort(key=operator.attrgetter('mz'))
-        mz_min,mz_max=data_points[0].mz,data_points[-1].mz
+
 
         mzlist=array('d',(mz for _,mz,_ in data_points))
-        slice_cut=[]
-        for i in itertools.takewhile(lambda n:n<mz_max,itertools.count(mz_min,mz_space)):
-            pos = bisect_left(mzlist, i)
-            slice_cut.append(pos)
-        slice_cut.append(len(data_points))
-        for pos,pos1 in zip(slice_cut,slice_cut[2:]):
-            dp_sub=data_points[pos:pos1]#.tolist()
-            if pos+min_group_size<pos1 and max(I for _,_,I in dp_sub)>min_highest_I:
-                eic_dict=dict() # highest intensity in this m/z range
-                for rt,mz,I in dp_sub:
-                    if rt not in eic_dict or eic_dict[rt][1]<I:
-                        eic_dict[rt]=(mz,I)
-                if min_group_size<=len({r for r,(_,i) in eic_dict.items() if i>group_I_threshold}):
-                    for rt,(mz,i) in sorted(eic_dict.items()):
-                        ofile.write('{}\t{}\t{}\n'.format(rt,mz,i))
-                    ofile.write('-\n')
+        for ent in lib_ent:
+            for ii in [-.03,-.015,0]:
+                mbd=ent.Mmass+ii
+                pos0 = bisect_left(mzlist, mbd)
+                pos1 = bisect_left(mzlist, mbd+.03)
+                if ent.rt!='NA':
+                    dp_sub=[x for x in data_points[pos0:pos1] if abs(ent.rt-x[0])<RT_shift+30]
+                else:
+                    dp_sub=data_points[pos0:pos1]
+                if len(dp_sub)>min_group_size and max(I for _,_,I in dp_sub)>min_highest_I:
+                    eic_dict=dict() # highest intensity in this m/z range
+                    for rt,mz,I in dp_sub:
+                        if rt not in eic_dict or eic_dict[rt][1]<I:
+                            eic_dict[rt]=(mz,I)
+                    if min_group_size<=len({r for r,(_,i) in eic_dict.items() if i>group_I_threshold}):
+                        for rt,mz_i in sorted(eic_dict.items()):
+                            ofile.write('{}\t{}\t{}\n'.format(rt,*mz_i))
+                        ofile.write('-\n')
         ofile.write('\n')
-
 
 
     with open('eic_'+basename0+'.txt','w') as ofile:
         mz_slice(ms1_scans)
 
-
-    def print_pt2(ms_scans):
-        ofile.write('scan '+ms_scans[0]+'\n')
-        for ms1mz,scan_i in ms_scans[1:]:
-            ofile.write(ms1mz+'\n')
-            ofile.write(str(scan_i.rt)+'\n')
-            ofile.write(' '.join(str(x) for x in scan_i.mz)+'\n')
-            ofile.write(' '.join(str(x) for x in scan_i.I)+'\n')
-        ofile.write('\n')
-
-    if len(ms2_scans)-1:
-        with open('ms2spectra_'+basename0+'.txt','w') as ofile:
-            print_pt2(ms2_scans)
-
-    def print_pt(ms_scans):
-        ofile.write('scan '+ms_scans[0]+'\n')
-        for scan_i in ms_scans[1:]:
-            ofile.write(str(scan_i.rt)+'\n')
-            ofile.write(' '.join(str(mz) for mz,i in zip(scan_i.mz,scan_i.I) if i>0)+'\n')
-            ofile.write(' '.join(str(i) for i in scan_i.I if i>0)+'\n')
-        ofile.write('\n')
-
-    with open('ms_scans_'+basename0+'.txt','w') as ofile:
-        print_pt(ms1_scans)
 
 
 list(map(print_eic_ms, mzML_files))
@@ -159,7 +181,7 @@ if __name__ == '__main__':
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
         list(executor.map(cwt.cwt, mzML_files))
 
+import DDArextab
+DDArextab.print_tab(lib_ent)
 
 print("Run time = {:.1f} mins".format(((time.time() - start_time)/60)))
-
-
