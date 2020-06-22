@@ -1,7 +1,7 @@
 # MetaboKit
  MetaboKit: a new bioinformatics workflow for untargeted metabolomics analysis with DDA-MS and DIA-MS
  
-<img src="https://github.com/MetaboKit/MetaboKit/blob/master/Figure1.png" align="left">
+<img src="Figure1.png" align="left">
 
 See the [manual](manual.pdf) for full documentation.
 
@@ -21,7 +21,7 @@ An example dataset [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA
 
 ## Bugs and Feedback
 
-For bugs, questions and discussions please use the [GitHub Issues](https://github.com/MetaboKit/metabokit/issues).
+For bugs, questions and discussions please use the [GitHub Issues](issues).
 
 <!---
 ## License
