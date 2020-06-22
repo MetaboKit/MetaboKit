@@ -3,7 +3,7 @@
  
 <img src="https://github.com/MetaboKit/MetaboKit/blob/master/Figure1.png" align="left">
 
-See the [manual](https://github.com/MetaboKit/MetaboKit/blob/master/manual.pdf) for full documentation.
+See the [manual](manual.pdf) for full documentation.
 
 
 ## Installing 
