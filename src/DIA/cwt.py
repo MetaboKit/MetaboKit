@@ -25,8 +25,7 @@ Point=collections.namedtuple('Point',('rt mz I'))
 Coef=collections.namedtuple('Coef',('rt sc coef'))
 Peak=collections.namedtuple('Peak',('mz rt sc coef auc'))
 
-wave_scales=[x/2 for x in list(range(peak_w[1]+2,peak_w[0]-3,-2))]
-wave_scales=list(range(2,25))+list(range(25,60,2))
+wave_scales=[2,2.5]+list(range(3,20))+[20*1.05**i for i in range(20)]
 ws0=bisect_left(wave_scales,peak_w[0]/2)
 ws1=bisect_left(wave_scales,peak_w[1]/2,lo=ws0)
 wave_scales=wave_scales[:ws1+1+1]#[::-1]
@@ -48,7 +47,13 @@ def get_EICs(bn):
 def findridge(eic):
     EIC,rt_all=eic
     eic_dict={pt.rt:(pt.mz,pt.I) for pt in EIC}
-    eic_rt=sorted(x for x,y in eic_dict.items() if y[1]>min_feat_height)#reduce exe time
+    eic_rt=set()
+    for x,y in eic_dict.items():
+        pos=bisect_left(rt_all,x)
+        if 0<pos<len(rt_all)-1 and y[1]>min_feat_height:
+            eic_rt.add((rt_all[pos-1]+x)/2)
+            eic_rt.add((rt_all[pos+1]+x)/2)
+    eic_rt=sorted(eic_rt)
 
 
     coefs = [[0]*len(eic_rt) for i in wave_scales]
@@ -90,20 +95,18 @@ def findridge(eic):
 
     ridgelines=[]
     for xx,scale_coef in enumerate(max_map):
-        for yy,coef in enumerate(scale_coef):
+        for yy,coef in((y,c) for y,c in enumerate(scale_coef) if c>0):
             added=False
-            if coef:
-                for rl in ridgelines:
-                    if ((abs(bisect_left(rt_all,rl[-1].rt)-bisect_left(rt_all,eic_rt[yy]))<2 or abs(rl[-1].rt-eic_rt[yy])<1) and \
-                            rl[-1].sc==wave_scales[xx-1]):
-                        rl.append(Coef(eic_rt[yy],wave_scales[xx],coef))
-                        added=True
-                        break
-                if not added:
-                    ridgelines.append([Coef(eic_rt[yy],wave_scales[xx],coef)])
+            for rl in ridgelines:
+                if ((abs(bisect_left(rt_all,rl[-1].rt)-bisect_left(rt_all,eic_rt[yy]))<2 or abs(rl[-1].rt-eic_rt[yy])<1) and \
+                        rl[-1].sc==wave_scales[xx-1]):
+                    rl.append(Coef(eic_rt[yy],wave_scales[xx],coef))
+                    added=True
+                    break
+            if not added:
+                ridgelines.append([Coef(eic_rt[yy],wave_scales[xx],coef)])
 
-    ridgelines=[x for x in ridgelines if len(x)>=8]
-
+    ridgelines=[x for x in ridgelines if len(x)>8]
 
 
 
@@ -124,10 +127,10 @@ def findridge(eic):
 
     for rd in ridgelines:
         peak_loc=max(rd,key=operator.attrgetter('coef'))
-        pos0=bisect_left(rt_all,peak_loc.rt-1.5*peak_loc.sc)
-        pos1=bisect_left(rt_all,peak_loc.rt+1.5*peak_loc.sc,lo=pos0)
+        pos0=bisect_left(rt_all,peak_loc.rt-peak_loc.sc-1)
+        pos1=bisect_left(rt_all,peak_loc.rt+peak_loc.sc+1,lo=pos0)
         auc=sum((eic_dict.get(rt0,(0,0))[1]+eic_dict.get(rt1,(0,0))[1])*(rt1-rt0) for rt0,rt1 in zip(rt_all[pos0:],rt_all[pos0+1:pos1]))/2
-        if min_auc<auc:# and peak_loc.sc<=len(rd):#ridge length
+        if min_auc<auc and rd.index(peak_loc)<len(rd)-5:
             rt_sub=[rt for rt in rt_all[pos0:pos1] if rt in eic_dict]
             peakmz=sum(eic_dict[rt][0]*eic_dict[rt][1] for rt in rt_sub)/sum(eic_dict[rt][1] for rt in rt_sub)
             peaks.append(Peak(peakmz,peak_loc.rt,peak_loc.sc,peak_loc.coef,auc))
@@ -136,6 +139,7 @@ def findridge(eic):
 
 def cwt(mzML_file):
     basename0=os.path.basename(mzML_file)
+    print(basename0)
 
     with open('ms1feature_'+basename0+'.txt','w') as writepeak:
 

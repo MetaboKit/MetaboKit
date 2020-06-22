@@ -151,6 +151,7 @@ for key,names in sorted(mz_rt_name.items()):
 
 def eligible_parent(x):
     return(not x.startswith('ISF of '))and x.split('\n')[1].startswith(('M-H ','M+H ','M '))
+
 for key,names in sorted(mz_rt_name.items()):
     if any(x.startswith('ISF of ') for x in names) and all(not eligible_parent(x)for x in names):
         mz_rt_name[key]=[x for x in names if not x.startswith('ISF of ')]
@@ -200,8 +201,8 @@ for k,n in name_mz_rt.items():
     if k.startswith('ISF of'):
         mz_rt_n.append((n,[k]))
     else:
+        mz_rt_n_dict[list(mz_rt_n_dict.keys())[0]][n].append(k)
 
-        mz_rt_n_dict[k.rsplit('\n',1)[1].split()[0]][n].append(k)
 
 n0_names=dict() 
 for n0,names in sorted([inner for outer in [list(x.items()) for x in mz_rt_n_dict.values()] for inner in outer]+mz_rt_n):
@@ -218,7 +219,7 @@ for n0,names in sorted([inner for outer in [list(x.items()) for x in mz_rt_n_dic
 
 with open('ann_'+'_'.join(lib_types)+'All.txt','w') as cpd_ann, \
         open('quant_'+'_'.join(lib_types)+'All.txt','w') as quant_auc:
-    quant_auc.write('group\tISF\tname\tadduct\tfeature_m/z\t')
+    quant_auc.write('group\tISF\tname\tadduct\tfeature_m/z\tMin.\t1st Qu.\tMedian\t3rd Qu.\tMax.\t%detected\t')
     quant_auc.write('\t'.join(x[:-5] for x in mzML_files)+'\t')
     quant_auc.write('\t'.join('RT_'+x[:-5] for x in mzML_files)+'\t')
     quant_auc.write('\t'.join('score_'+x[:-5] for x in mzML_files)+'\n')
@@ -297,6 +298,12 @@ with open('ann_'+'_'.join(lib_types)+'All.txt','w') as cpd_ann, \
             quant_auc.write('---'.join(nameset))
         prev_n0=n0
         quant_auc.write('\t{}\t{:.5f}'.format(','.join(adductset),statistics.median(premz_l)))
+
+        s_rt=sorted(dat_n[3] for dat_n in dat)
+        Qu1=s_rt[round((len(s_rt)-1)*.25)]/60
+        Qu2=s_rt[round((len(s_rt)-1)*.50)]/60
+        Qu3=s_rt[round((len(s_rt)-1)*.75)]/60
+        quant_auc.write('\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}'.format(s_rt[0]/60,Qu1,Qu2,Qu3,s_rt[-1]/60,len({x[0] for x in dat})/len(mzML_files)))
 
         line_str=[]
         for nn in range(len(mzML_files)):

@@ -47,7 +47,7 @@ for n,mzML_file in enumerate(mzML_files,1):
 
 def print_tab(lib_ent):
     with open('quant_rex.txt','w') as quant_auc:
-        quant_auc.write('name\tadduct\tfeature_m/z(library)\tRT(library)\tfeature_m/z(experimental median)\t')
+        quant_auc.write('name\tISF\tadduct\tfeature_m/z(library)\tRT(library)\tfeature_m/z(experimental median)\t%detected\t')
         quant_auc.write('\t'.join(x[:-5] for x in mzML_files)+'\t')
         quant_auc.write('\t'.join('RT_'+x[:-5] for x in mzML_files)+'\n')
         for ent in lib_ent:
@@ -76,9 +76,10 @@ def print_tab(lib_ent):
                             ','.join(format(dat_n[1].rt/60,'.2f') for dat_n in ent_p[pos0:pos1]) ))
                 mzmed=statistics.median(x[1].mz for x in ent_p)
                 if ent.rt!='NA':
-                    quant_auc.write('{}\t{}\t{:.5f}\t{:.2f}\t{:.5f}'.format(ent.name,ent.adduct,ent.Mmass,ent.rt/60,mzmed))
+                    quant_auc.write('{}\t{}\t{}\t{:.5f}\t{:.2f}\t{:.5f}'.format(ent.name,'*'if ent.name.startswith('ISF of ')else'',ent.adduct,ent.Mmass,ent.rt/60,mzmed))
                 else:
                     quant_auc.write('{}\t{}\t{:.5f}\tNA\t{:.5f}'.format(ent.name,ent.adduct,ent.Mmass,mzmed))
+                quant_auc.write('\t{:.2f}'.format(sum((1 if x else 0) for x,_ in line_str)/len(mzML_files)))
                 quant_auc.write('\t'+'\t'.join(x for x,_ in line_str)+'\t'+'\t'.join(x for _,x in line_str)+'\n')
 
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
         lib_ent0=[]
         for ent in lib_ent[:]:
             if ent in lib_ent:
-                ent_sub=lib_ent[bisect_left(lib_ent,(ent.Mmass,)):bisect_left(lib_ent,(ent.Mmass+.001,))]
+                ent_sub=[lib_ent[bisect_left(lib_ent,(ent.Mmass,))]]
                 names=[]
                 for ent0 in ent_sub:
                     names.append(ent0.name)

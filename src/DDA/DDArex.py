@@ -79,6 +79,11 @@ if 'LipidBlast-fork' in lib_types:
         libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Pos.msp')
     else:
         libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Neg.msp')
+if 'msdial' in lib_types:
+    if ispos:
+        libpaths.append(script_dir+'MSMS-Public-Pos-VS12.msp')
+    else:
+        libpaths.append(script_dir+'MSMS-Public-Neg-VS12.msp')
 
 metabokit=[]
 if any(x.startswith('metabokit ')  for x in lib_types):
@@ -94,7 +99,7 @@ def get_cpds():#from libs
     lib_ent0=[]
     for ent in lib_ent[:]:
         if ent in lib_ent:
-            ent_sub=lib_ent[bisect_left(lib_ent,(ent.Mmass,)):bisect_left(lib_ent,(ent.Mmass+.001,))]
+            ent_sub=[lib_ent[bisect_left(lib_ent,(ent.Mmass,))]]
             names=[]
             for ent0 in ent_sub:
                 names.append(ent0.name)
@@ -173,13 +178,10 @@ def print_eic_ms(mzML_file):
     with open('eic_'+basename0+'.txt','w') as ofile:
         mz_slice(ms1_scans)
 
+    cwt.cwt(mzML_file)
 
 
 list(map(print_eic_ms, mzML_files))
-if __name__ == '__main__':
-    freeze_support()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
-        list(executor.map(cwt.cwt, mzML_files))
 
 import DDArextab
 DDArextab.print_tab(lib_ent)

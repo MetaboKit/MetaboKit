@@ -56,6 +56,7 @@ if pos_neg_set=={'+'}:
 elif pos_neg_set=={'-'}:
     ispos=False
 else:
+    print(list(adduct_list.items()))
     print('check adduct list')
     sys.exit()
 
@@ -209,7 +210,7 @@ def read_lib(libpath):
             elif lsp[0]=="Formula":
                 name+=' '+lsp[1]
             elif lsp[0]=="NISTNO":
-                name+=' NIST '+lsp[1]
+                name+=' NIST '#+lsp[1]
             elif lsp[0]=="PrecursorMZ":
                 ms1mz=(lsp[1])
             elif lsp[0]=="Num peaks":
@@ -250,7 +251,7 @@ def read_lib(libpath):
                     if not lsp: break
                     frag_mz.append(lsp[0])
                     frag_I.append(lsp[1])
-                if frag_mz and all((x in cpd_list) for x in adduct[2::2]):
+                if frag_mz:
                     lib_dict[ms1mz+' '+charge+' '+','.join(frag_mz)+' '+','.join(frag_I)+' '+','.join(adduct)+' '+RT].append(name)
     if 'hmdb_metabolites.xml' in libpath0:
         hmdb_dict=dict()
@@ -299,6 +300,8 @@ def get_cpds():#from libs
 
         name='\n'.join(name)
 
+        lib_ent.append(Ent(ms1mz,name,frag_mz,frag_I,adduct.replace(',',''),charge,RT))
+        continue
 
         Mmass=ms1mz*charge
         adduct=adduct.split(',')
@@ -534,15 +537,15 @@ def print_score(mzML_file):
         else:
             score_ent=[]
             premz=(spec.ms1mz if peak is None else peak.mz)
-            for adduct0,(mass0,charge0,_) in list(adduct_list.items())[:-1]:
-                Mmass=(premz*charge0-mass0)/(1 if adduct0[0]=='M' else int(adduct0[0]))
-                err_bd=bound_ppm(Mmass*ms1ppm)
 
-                pos_0=bisect_left(lib_ent,(Mmass-err_bd,))
-                pos_1=bisect_left(lib_ent,(Mmass+err_bd,),lo=pos_0)
+            for iiiiii in range(1):
+                err_bd=bound_ppm(premz*ms1ppm)
+                pos_0=bisect_left(lib_ent,(premz-err_bd,))
+                pos_1=bisect_left(lib_ent,(premz+err_bd,),lo=pos_0)
                 lib_ent_=(x for x in lib_ent[pos_0:pos_1] if x.rt==None or abs(spec.rt-x.rt)<RT_shift)
 
                 for ent in lib_ent_:
+                    adduct0,charge0=ent.adduct,ent.charge
                     ms2_I=[]
                     ent_I=[]
                     xfrag=set()
@@ -590,11 +593,12 @@ def print_score(mzML_file):
 
         if peak is None:
             rt_l,rt_r=spec.rt-10,spec.rt+10
+            p_area=[x for x in ms1scans[bisect_left(ms1scans,(spec.ms1mz-.01,)):bisect_left(ms1scans,(spec.ms1mz+.01,))] if rt_l<x.rt<rt_r]
         else:
             rt_l,rt_r=peak.rt-peak.sc*1.5,peak.rt+peak.sc*1.5
+            p_area=[x for x in ms1scans[bisect_left(ms1scans,(peak.mz-.01,)):bisect_left(ms1scans,(peak.mz+.01,))] if rt_l<x.rt<rt_r]
         ms1rt=rtall[bisect_left(rtall,rt_l):bisect_left(rtall,rt_r)]
         p_dict=dict() # highest intensities per scan bounded by m/z
-        p_area=[x for x in ms1scans[bisect_left(ms1scans,(spec.ms1mz-.01,)):bisect_left(ms1scans,(spec.ms1mz+.01,))] if rt_l<x.rt<rt_r]
         for pt in p_area:
             if pt.rt not in p_dict or p_dict[pt.rt]<pt.I:
                 p_dict[pt.rt]=pt.I
@@ -662,7 +666,6 @@ def print_score(mzML_file):
                 annotated_.write('\n')
 
     print_all(id_quant_ma)
-
 
 
 list(map(print_score, mzML_files))

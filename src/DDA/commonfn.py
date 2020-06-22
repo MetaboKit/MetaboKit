@@ -35,12 +35,18 @@ def read_msp(libpath):
         if line.upper().startswith('NAME: '):
             name=line.split(': ',1)[1]
             RT='NA'
-            adduct=line[line.find("[M")+1:line.rfind("]")]
-        elif line.startswith('PRECURSORMZ: '):
+            if"[M"in line:
+                adduct=line[line.find("[M")+1:line.rfind("]")]
+            else:
+                adduct=''
+        elif line.upper().startswith('PRECURSORMZ: '):
             ms1mz=float(line.split(': ',1)[1])
         elif line.startswith('PRECURSORTYPE: '):
             adduct=line.split(': ',1)[1]
-            adduct=line[line.find("[M")+1:line.rfind("]")]
+            if"[M"in line:
+                adduct=line[line.find("[M")+1:line.rfind("]")]
+            else:
+                adduct=''
         elif line.startswith('RETENTIONTIME: ') and libpath0.startswith('metabokit '):
             RT=(float(line.split(': ',1)[1])*60)
         elif not line:

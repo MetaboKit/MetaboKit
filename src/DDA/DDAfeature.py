@@ -20,7 +20,6 @@ start_time = time.time()
 
 param_set={
         "mzML_files",
-        "min_highest_I",
         "num_threads",
         }
 
@@ -52,16 +51,14 @@ num_threads=int(param_dict["num_threads"])
 
 
 min_group_size=2#int(param_dict["min_group_size"])
-min_highest_I=float(param_dict["min_highest_I"])
-group_I_threshold=min_highest_I#float(param_dict["group_I_threshold"])
-mz_space=.015
+mz_space=.010
 
 def print_eic_ms(mzML_file):
 
     basename0=os.path.basename(mzML_file)
     print(basename0)
-    ms1_scans=['MS1']
-    ms2_scans=['MS2']
+    ms1_scans=[]
+    ms2_scans=[]
 
     tree=ET.parse(open(mzML_file,'rb'))
 
@@ -88,35 +85,33 @@ def print_eic_ms(mzML_file):
     del element
     del tree
 
-    print(len(ms1_scans)-1,' MS1 scans')
-    print(len(ms2_scans)-1,' MS2 scans')
+    print(len(ms1_scans),' MS1 scans')
+    print(len(ms2_scans),' MS2 scans')
 
 
-
-
-
-    def mz_slice(ms_scans):
-        rtdict={rt:n for n,rt in enumerate(sorted({sc.rt for sc in ms_scans[1:]}))}
-        ofile.write('scan '+ms_scans[0]+'\n')
+    def mz_slice(ms1_scans,sorted_ms2_pre_mz):
+        rtdict={rt:n for n,rt in enumerate(sorted({sc.rt for sc in ms1_scans}))}
+        ofile.write('scan MS1\n')
         ofile.write('\t'.join([str(x) for x in rtdict])+'\n')
-        data_points=[Point(scan.rt,mz,i) for scan in ms_scans[1:] for mz,i in zip(scan.mz,scan.I)]
+        data_points=[Point(scan.rt,mz,i) for scan in ms1_scans for mz,i in zip(scan.mz,scan.I)]
         data_points.sort(key=operator.attrgetter('mz'))
-        mz_min,mz_max=data_points[0].mz,data_points[-1].mz
+        mz_min,mz_max= sorted_ms2_pre_mz[0]-.03,sorted_ms2_pre_mz[-1]+.03
 
         mzlist=array('d',(mz for _,mz,_ in data_points))
         slice_cut=[]
         for i in itertools.takewhile(lambda n:n<mz_max,itertools.count(mz_min,mz_space)):
             pos = bisect_left(mzlist, i)
-            slice_cut.append(pos)
-        slice_cut.append(len(data_points))
-        for pos,pos1 in zip(slice_cut,slice_cut[2:]):
-            dp_sub=data_points[pos:pos1]#.tolist()
-            if pos+min_group_size<pos1 and max(I for _,_,I in dp_sub)>min_highest_I:
-                eic_dict=dict() # highest intensity in this m/z range
-                for rt,mz,I in dp_sub:
-                    if rt not in eic_dict or eic_dict[rt][1]<I:
-                        eic_dict[rt]=(mz,I)
-                if min_group_size<=len({r for r,(_,i) in eic_dict.items() if i>group_I_threshold}):
+            slice_cut.append((pos,i))
+        for (pos,mz0),(pos1,mz1) in zip(slice_cut,slice_cut[3:]):
+            if pos+min_group_size<pos1:# and max(I for _,_,I in dp_sub)>min_highest_I:
+                dp_sub=data_points[pos:pos1]#.tolist()
+                ms2pos0=bisect_left(sorted_ms2_pre_mz,mz0+.009999)
+                ms2pos1=bisect_left(sorted_ms2_pre_mz,mz1-.009999)
+                if ms2pos0<ms2pos1:
+                    eic_dict=dict() # highest intensity in this m/z range
+                    for rt,mz,I in dp_sub:
+                        if rt not in eic_dict or eic_dict[rt][1]<I:
+                            eic_dict[rt]=(mz,I)
                     for rt,(mz,i) in sorted(eic_dict.items()):
                         ofile.write('{}\t{}\t{}\n'.format(rt,mz,i))
                     ofile.write('-\n')
@@ -125,25 +120,25 @@ def print_eic_ms(mzML_file):
 
 
     with open('eic_'+basename0+'.txt','w') as ofile:
-        mz_slice(ms1_scans)
+        mz_slice(ms1_scans,sorted(float(x[0]) for x in ms2_scans))
 
 
     def print_pt2(ms_scans):
-        ofile.write('scan '+ms_scans[0]+'\n')
-        for ms1mz,scan_i in ms_scans[1:]:
+        ofile.write('scan MS2\n')
+        for ms1mz,scan_i in ms_scans:
             ofile.write(ms1mz+'\n')
             ofile.write(str(scan_i.rt)+'\n')
             ofile.write(' '.join(str(x) for x in scan_i.mz)+'\n')
             ofile.write(' '.join(str(x) for x in scan_i.I)+'\n')
         ofile.write('\n')
 
-    if len(ms2_scans)-1:
+    if len(ms2_scans):
         with open('ms2spectra_'+basename0+'.txt','w') as ofile:
             print_pt2(ms2_scans)
 
     def print_pt(ms_scans):
-        ofile.write('scan '+ms_scans[0]+'\n')
-        for scan_i in ms_scans[1:]:
+        ofile.write('scan MS1\n')
+        for scan_i in ms_scans:
             ofile.write(str(scan_i.rt)+'\n')
             ofile.write(' '.join(str(mz) for mz,i in zip(scan_i.mz,scan_i.I) if i>0)+'\n')
             ofile.write(' '.join(str(i) for i in scan_i.I if i>0)+'\n')

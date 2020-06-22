@@ -21,7 +21,7 @@ An example dataset [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA
 
 ## Bugs and Feedback
 
-For bugs, questions and discussions please use the [GitHub Issues](issues).
+For bugs, questions and discussions please use the [GitHub Issues](https://github.com/MetaboKit/metabokit/issues).
 
 <!---
 ## License
