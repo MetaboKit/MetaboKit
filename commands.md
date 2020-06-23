@@ -1,18 +1,17 @@
 # MetaboKit pipeline
 ## DDA quantitation and library generation
 ```
-cd DDA/
-DDAfeature.py
-DDAscore.py
-DDAalign.py
+cd {path_to_folder_with_mzML_files_and_param.txt}
+python3 {path_to_metabokit}/linux/DDAfeature.py
+python3 {path_to_metabokit}/linux/DDAscore.py
+python3 {path_to_metabokit}/linux/DDAalign.py
 ```
 
 ## DIA quantitation
 ```
-cd DDA/
-DIAfeature.py
-DIAscore.py
-DIAalign.py
+python3 {path_to_metabokit}/linux/DIAfeature.py
+python3 {path_to_metabokit}/linux/DIAscore.py
+python3 {path_to_metabokit}/linux/DIAalign.py
 ```
 
 
