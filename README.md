@@ -9,7 +9,7 @@ See the [manual](manual.pdf) for full documentation.
 ## Installing 
 
 ### Linux
-Executables for linux are included [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1). See for [commands.md](commands.md) usage.
+Installation of python3(>=3.7) is required. Python scripts included [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1). See for [commands.md](commands.md) usage.
 
 ### Windows
 
