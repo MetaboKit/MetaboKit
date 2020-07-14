@@ -17,7 +17,7 @@ Executables for 64-bit Windows are included [here](https://drive.google.com/open
 
 ## Example dataset
 
-An example dataset [here](https://drive.google.com/open?id=1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1).
+An example dataset [here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing).
 
 ## Bugs and Feedback
 
