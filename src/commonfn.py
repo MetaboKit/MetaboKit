@@ -16,8 +16,12 @@ def read_param(param_set):
                 key_=line
             elif key_:
                 value_+=line+'\n'
+        param_dict[key_]=value_[:-1]
     return param_dict
 
+
+def bound_ppm(mz_diff):
+    return max(.005,mz_diff)
 
 
 Ent=collections.namedtuple('Ent',('Mmass name adduct rt'))
@@ -58,5 +62,3 @@ def read_msp(libpath):
     print(libpath,len(lib_l))
     return lib_l
 
-def bound_ppm(mz_diff):
-    return max(.003,mz_diff)

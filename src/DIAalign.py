@@ -17,6 +17,8 @@ param_set={
         "ms1_ppm",
         "ISF_rt_diff",
         "RT_shift",
+        "MS2_score",
+        "pfcor",
         }
 param_dict=commonfn.read_param(param_set)
 
@@ -24,6 +26,8 @@ RT_shift=float(param_dict['RT_shift'])
 lib_types=param_dict["library"].splitlines()
 ms1ppm=float(param_dict['ms1_ppm'])/1e6
 ISF_rt_diff=float(param_dict["ISF_rt_diff"])
+MS2_score=float(param_dict['MS2_score'])
+pfcor=float(param_dict['pfcor'])
 
 
 count_id=collections.Counter()
@@ -159,6 +163,15 @@ with open('quant_'+'_'.join(lib_types)+'All.txt','w') as mq:
 
     for n0,names in sorted([inner for outer in [list(x.items()) for x in mz_rt_n_dict.values()] for inner in outer]+mz_rt_n):
         for name in names:
+
+            for cpd in pf_dict[name]:# for precursor and frags in the precursor grp
+                if cpd[1]=='MS1':
+                    dat=merge_q[cpd]
+                    countdot=sum(float(x)>MS2_score  for _,_,x,_ in dat)
+                    countcor=sum(float(x)>pfcor  for _,_,_,x in dat)
+            if countdot<3 or countcor<3:
+                continue
+
             for cpd in pf_dict[name]:# for precursor and frags in the precursor grp
                 dat=merge_q[cpd]
                 quant_=[x for x,_,_,_ in dat]

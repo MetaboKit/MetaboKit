@@ -21,7 +21,6 @@ start_time = time.time()
 param_set={
         "mzML_files",
         "window_setting",
-        "min_highest_I",
         "num_threads",
         }
 param_dict=commonfn.read_param(param_set)
@@ -58,9 +57,14 @@ num_threads=int(param_dict["num_threads"])
 SWATHs=param_dict["window_setting"].splitlines()
 
 min_group_size=2#int(param_dict["min_group_size"])
-min_highest_I=float(param_dict["min_highest_I"])
-group_I_threshold=min_highest_I#float(param_dict["group_I_threshold"])
-mz_space=.010
+mz_space=.009
+
+file0=glob.glob('ann_*All.txt')[0]
+tar_mz=[]
+for line in open(file0):
+    if line.startswith("PRECURSOR_M/Z: "):
+        tar_mz.append(float(line.split(": ")[1]))
+tar_mz.sort()
 
 def print_eic_ms(mzML_file):
 
@@ -104,31 +108,30 @@ def print_eic_ms(mzML_file):
     print(len(ms1_scans)-1,' MS1 scans')
 
 
-
-
-
     def mz_slice(ms_scans):
         rtdict={rt:n for n,rt in enumerate(sorted({sc.rt for sc in ms_scans[1:]}))}
         ofile.write('scan '+ms_scans[0]+'\n')
         ofile.write('\t'.join([str(x) for x in rtdict.keys()])+'\n')
         data_points=[Point(scan.rt,mz,i) for scan in ms_scans[1:] for mz,i in zip(scan.mz,scan.I)]
         data_points.sort(key=operator.attrgetter('mz'))
-        mz_min,mz_max=data_points[0].mz,data_points[-1].mz
+        mz_min,mz_max= tar_mz[0]-.02,tar_mz[-1]+.03
+        
 
         mzlist=array('d',(mz for _,mz,_ in data_points))
         slice_cut=[]
         for i in itertools.takewhile(lambda n:n<mz_max,itertools.count(mz_min,mz_space)):
             pos = bisect_left(mzlist, i)
-            slice_cut.append(pos)
-        slice_cut.append(len(data_points))
-        for pos,pos1 in zip(slice_cut,slice_cut[3:]):
-            dp_sub=data_points[pos:pos1]#.tolist()
-            if pos+min_group_size<pos1 and max(I for _,_,I in dp_sub)>min_highest_I:
-                eic_dict=dict() # highest intensity in this m/z range
-                for rt,mz,I in dp_sub:
-                    if rt not in eic_dict or eic_dict[rt][1]<I:
-                        eic_dict[rt]=(mz,I)
-                if min_group_size<=len({r for r,(_,i) in eic_dict.items() if i>group_I_threshold}):
+            slice_cut.append((pos,i))
+        for (pos,mz0),(pos1,mz1) in zip(slice_cut,slice_cut[3:]):
+            if pos+min_group_size<pos1:
+                dp_sub=data_points[pos:pos1]#.tolist()
+                ms2pos0=bisect_left(tar_mz,mz0+.0045)
+                ms2pos1=bisect_left(tar_mz,mz1-.0045)
+                if ms2pos0<ms2pos1:
+                    eic_dict=dict() # highest intensity in this m/z range
+                    for rt,mz,I in dp_sub:
+                        if rt not in eic_dict or eic_dict[rt][1]<I:
+                            eic_dict[rt]=(mz,I)
                     for rt,(mz,i) in sorted(eic_dict.items()):
                         ofile.write('{}\t{}\t{}\n'.format(rt,mz,i))
                     ofile.write('-\n')
@@ -151,14 +154,30 @@ def print_eic_ms(mzML_file):
     with open('ms_scans_'+basename0+'.txt','w') as ofile:
         list(map(print_pt, [ms1_scans]+[x for x in ms2_scans if not x[0].startswith('skip')]))
 
+def write_peaks(mzML_file):
+    basename0=os.path.basename(mzML_file)
 
+    with open('ms1feature_'+basename0+'.txt','w') as writepeak:
+        peak_list=[]
+        for peaks in map(cwt.findridge, cwt.get_EICs(basename0)):
+            peak_list.extend(peaks)
+        
+        peak_list.sort()
+        for peak in peak_list[:]:
+            if peak in peak_list:
+                peak_mz=sorted((x for x in peak_list[bisect_left(peak_list,(peak.mz,)):bisect_left(peak_list,(peak.mz+.01,))] if abs(x.rt-peak.rt)<x.sc+peak.sc),key=operator.attrgetter('coef'),reverse=True)
+                for peak0 in peak_mz[1:]:
+                    peak_list.remove(peak0)
+
+        writepeak.write('MS1\n')
+        for peak in peak_list:
+            writepeak.write('\t'.join(str(x) for x in peak)+'\n')
+
+
+    
 list(map(print_eic_ms, mzML_files))
-if __name__ == '__main__':
-    freeze_support()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
-        list(executor.map(cwt.cwt, mzML_files))
+
+list(map(write_peaks, mzML_files))
 
 
 print("Run time = {:.1f} mins".format(((time.time() - start_time)/60)))
-
-

@@ -9,7 +9,6 @@ import commonfn
 
 param_set={
         "mzML_files",
-        "min_highest_I",
         "length_of_ion_chromatogram",
         }
 param_dict=commonfn.read_param(param_set)
@@ -17,8 +16,6 @@ param_dict=commonfn.read_param(param_set)
 mzML_files=glob.glob(param_dict["mzML_files"])
 
 
-min_feat_height=float(param_dict["min_highest_I"])
-min_auc=min_feat_height*2 #float(param_dict["min_auc"])
 peak_w=[int(x) for x in param_dict["length_of_ion_chromatogram"].split()]
 
 Point=collections.namedtuple('Point',('rt mz I'))
@@ -47,10 +44,12 @@ def get_EICs(bn):
 def findridge(eic):
     EIC,rt_all=eic
     eic_dict={pt.rt:(pt.mz,pt.I) for pt in EIC}
+    I_sub=sorted((pt.I for pt in EIC),reverse=True)
+    I_cut=I_sub[int(min(len(I_sub)*.1,len(I_sub)-1))]
     eic_rt=set()
     for x,y in eic_dict.items():
         pos=bisect_left(rt_all,x)
-        if 0<pos<len(rt_all)-1 and y[1]>min_feat_height:
+        if 0<pos<len(rt_all)-1 and y[1]>I_cut:
             eic_rt.add((rt_all[pos-1]+x)/2)
             eic_rt.add((rt_all[pos+1]+x)/2)
     eic_rt=sorted(eic_rt)
@@ -118,7 +117,8 @@ def findridge(eic):
 
         pos0=bisect_left(rt_all,peak_loc.rt-peak_loc.sc)
         pos1=bisect_left(rt_all,peak_loc.rt+peak_loc.sc,lo=pos0)
-        if pos0==0 or pos1==len(rt_all) or sum(1 for rt0 in rt_all[pos0:pos1] if rt0 in eic_dict)/(pos1-pos0)<.5:
+        countsc=sum(1 for rt0 in rt_all[pos0:pos1] if rt0 in eic_dict)
+        if pos0==0 or pos1==len(rt_all) or countsc/(pos1-pos0)<.5 or countsc<4:
             ridgelines.remove(rd)
             continue
 
@@ -130,7 +130,7 @@ def findridge(eic):
         pos0=bisect_left(rt_all,peak_loc.rt-peak_loc.sc-1)
         pos1=bisect_left(rt_all,peak_loc.rt+peak_loc.sc+1,lo=pos0)
         auc=sum((eic_dict.get(rt0,(0,0))[1]+eic_dict.get(rt1,(0,0))[1])*(rt1-rt0) for rt0,rt1 in zip(rt_all[pos0:],rt_all[pos0+1:pos1]))/2
-        if min_auc<auc and rd.index(peak_loc)<len(rd)-5:
+        if 0<auc and rd.index(peak_loc)<len(rd)-5:
             rt_sub=[rt for rt in rt_all[pos0:pos1] if rt in eic_dict]
             peakmz=sum(eic_dict[rt][0]*eic_dict[rt][1] for rt in rt_sub)/sum(eic_dict[rt][1] for rt in rt_sub)
             peaks.append(Peak(peakmz,peak_loc.rt,peak_loc.sc,peak_loc.coef,auc))

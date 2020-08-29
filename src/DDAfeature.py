@@ -51,7 +51,8 @@ num_threads=int(param_dict["num_threads"])
 
 
 min_group_size=2#int(param_dict["min_group_size"])
-mz_space=.010
+mz_space=.009
+
 
 def print_eic_ms(mzML_file):
 
@@ -77,6 +78,7 @@ def print_eic_ms(mzML_file):
             mslevel=mslevel_elem.attrib['value']
             if mslevel=='1':
                 ms1_scans.append(store_scan(element))
+                ...
             elif mslevel=='2':
                 ms2_scans.append((element.find(".//*[@accession='MS:1000744']").get('value'),store_scan(element)))
             else:
@@ -95,7 +97,7 @@ def print_eic_ms(mzML_file):
         ofile.write('\t'.join([str(x) for x in rtdict])+'\n')
         data_points=[Point(scan.rt,mz,i) for scan in ms1_scans for mz,i in zip(scan.mz,scan.I)]
         data_points.sort(key=operator.attrgetter('mz'))
-        mz_min,mz_max= sorted_ms2_pre_mz[0]-.03,sorted_ms2_pre_mz[-1]+.03
+        mz_min,mz_max= sorted_ms2_pre_mz[0]-.02,sorted_ms2_pre_mz[-1]+.03
 
         mzlist=array('d',(mz for _,mz,_ in data_points))
         slice_cut=[]
@@ -105,8 +107,8 @@ def print_eic_ms(mzML_file):
         for (pos,mz0),(pos1,mz1) in zip(slice_cut,slice_cut[3:]):
             if pos+min_group_size<pos1:# and max(I for _,_,I in dp_sub)>min_highest_I:
                 dp_sub=data_points[pos:pos1]#.tolist()
-                ms2pos0=bisect_left(sorted_ms2_pre_mz,mz0+.009999)
-                ms2pos1=bisect_left(sorted_ms2_pre_mz,mz1-.009999)
+                ms2pos0=bisect_left(sorted_ms2_pre_mz,mz0+.008999)
+                ms2pos1=bisect_left(sorted_ms2_pre_mz,mz1-.008999)
                 if ms2pos0<ms2pos1:
                     eic_dict=dict() # highest intensity in this m/z range
                     for rt,mz,I in dp_sub:
@@ -147,13 +149,34 @@ def print_eic_ms(mzML_file):
     with open('ms_scans_'+basename0+'.txt','w') as ofile:
         print_pt(ms1_scans)
 
+    ms2_scans=sorted(ms2_scans,key=lambda x:float(x[0]))
+    sorted_ms2_pre_mz=[float(x[0]) for x in ms2_scans]
+
+    basename0=os.path.basename(mzML_file)
+
+    with open('ms1feature_'+basename0+'.txt','w') as writepeak:
+        peak_list=[]
+        for peaks in map(cwt.findridge, cwt.get_EICs(basename0)):
+            peak_list.extend(peaks)
+        
+        peak_list.sort()
+        for peak in peak_list[:]:
+            if peak in peak_list:
+                peak_mz=sorted((x for x in peak_list[bisect_left(peak_list,(peak.mz,)):bisect_left(peak_list,(peak.mz+.01,))] if abs(x.rt-peak.rt)<x.sc+peak.sc),key=operator.attrgetter('coef'),reverse=True)
+                for peak0 in peak_mz[1:]:
+                    peak_list.remove(peak0)
+
+        writepeak.write('MS1\n')
+        for peak in peak_list:
+            pos0=bisect_left(sorted_ms2_pre_mz,peak.mz-.01)
+            pos1=bisect_left(sorted_ms2_pre_mz,peak.mz+.01)
+            for _,scan_i in ms2_scans[pos0:pos1]:
+                if abs(peak.rt-scan_i.rt)<peak.sc:
+                    writepeak.write('\t'.join(str(x) for x in peak)+'\n')
+                    break
+
 
 list(map(print_eic_ms, mzML_files))
-if __name__ == '__main__':
-    freeze_support()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
-        list(executor.map(cwt.cwt, mzML_files))
-
 
 print("Run time = {:.1f} mins".format(((time.time() - start_time)/60)))
 

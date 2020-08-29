@@ -215,7 +215,7 @@ def read_lib(libpath):
                             adduct=adduct_charge
                             charge='1+'
                         else:
-                            adduct,charge=adduct_charge
+                            *adduct,charge=adduct_charge
                         break
                 for line in it_ann:
                     if line.startswith("PRECURSOR_M/Z: "):
@@ -224,13 +224,13 @@ def read_lib(libpath):
                 line=next(it_ann) #rt
                 rt=line.split(': ')[1]
                 for line in it_ann:
-                    if line.startswith("EXPERIMENTAL_SPECTRUM:"):
+                    if line.startswith("LIBRARY_SPECTRUM:"):
                         break
                 frag_mz=[]
                 frag_I=[]
                 frag_ann=[]
                 for line in it_ann:
-                    if not line.startswith("LIBRARY_SPECTRUM:"):
+                    if line:
                         mz,I=line.split(' ')[:2]
                         frag_mz.append(mz)
                         frag_I.append(I)
@@ -400,10 +400,10 @@ def print_score(mzML_file):
     def print_mp(mp):
         name,adduct,ms1mz,RT,frag_mz,frag_ann,max_peak=mp
         if len(max_peak[1])>2:
-            ms1pfc=sorted(max_peak[1])[-2]#nth largest pfc
+            ms1pfc=sorted(max_peak[1])[-1]#nth largest pfc
         else:
             ms1pfc=min(max_peak[1])
-        if max_peak[0]>=MS2_score and ms1pfc>=pfcor:
+        if True:
             cpd_quant.write('{}\tMS1\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(name,adduct,ms1mz,RT,max_peak[2].rt,max_peak[0],ms1pfc,max_peak[4]))
             for f_mz,f_ann,ms2_pfc,ms2_auc in zip(frag_mz,frag_ann,max_peak[1],max_peak[3]):
                 if ms2_pfc>-.5:
@@ -415,4 +415,6 @@ def print_score(mzML_file):
 
 
 list(map(print_score, mzML_files))
+
+
 
