@@ -169,7 +169,7 @@ with open('quant_'+'_'.join(lib_types)+'All.txt','w') as mq:
                     dat=merge_q[cpd]
                     countdot=sum(float(x)>MS2_score  for _,_,x,_ in dat)
                     countcor=sum(float(x)>pfcor  for _,_,_,x in dat)
-            if countdot<3 or countcor<3:
+            if countdot<min(len(mzML_files),3) or countcor<min(len(mzML_files),3):
                 continue
 
             for cpd in pf_dict[name]:# for precursor and frags in the precursor grp
