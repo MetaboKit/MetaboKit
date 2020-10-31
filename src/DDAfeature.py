@@ -10,7 +10,6 @@ from bisect import bisect_left
 import os
 import glob
 import concurrent.futures
-from multiprocessing import freeze_support
 from array import array
 import time
 import cwt
@@ -20,7 +19,6 @@ start_time = time.time()
 
 param_set={
         "mzML_files",
-        "num_threads",
         }
 
 param_dict=commonfn.read_param(param_set)
@@ -47,7 +45,6 @@ def store_scan(element):
 
 mzML_files=sorted(glob.glob(param_dict["mzML_files"]))
 
-num_threads=int(param_dict["num_threads"])
 
 
 min_group_size=2#int(param_dict["min_group_size"])

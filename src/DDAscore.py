@@ -23,7 +23,6 @@ param_set={
         "ISF_score",
         "MS2_score",
         "min_peaks",
-        "num_threads",
         "base_peak_filter",
         "RT_shift",
         }
@@ -35,12 +34,11 @@ Peak=collections.namedtuple('Peak',('mz rt sc coef auc mmz'))
 Ent=collections.namedtuple('Ent',('Mmass name mz I adduct charge rt'))
 
 RT_shift=float(param_dict['RT_shift'])
-lib_types=param_dict["library"].splitlines()
+lib_types=[x.split(' #',1)[0].strip() for x in param_dict["library"].splitlines()]
 
 ms1ppm=float(param_dict['ms1_ppm'])/1e6
 ms2ppm=float(param_dict['ms2_ppm'])/1e6
 
-num_threads=int(param_dict["num_threads"])
 min_peaks=int(param_dict["min_peaks"])
 bpfilter=param_dict.get("base_peak_filter",'0.00 20').split(' ')
 bpfilter=[float(bpfilter[0]),int(bpfilter[1])]
@@ -77,9 +75,9 @@ if 'LipidBlast' in lib_types:
         libpaths.extend(glob.glob(script_dir+'LipidBlast-ASCII-spectra/custom-libs/*neg.msp'))
 if 'LipidBlast-fork' in lib_types:
     if ispos:
-        libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Pos.msp')
+        libpaths.append(script_dir+'MSDIAL-TandemMassSpectralAtlas-VS68-Pos.msp')
     else:
-        libpaths.append(script_dir+'MSDIAL-InsilicoMSMS-Lipids-Neg.msp')
+        libpaths.append(script_dir+'MSDIAL-TandemMassSpectralAtlas-VS68-Neg.msp')
 if 'hmdb' in lib_types:
     libpaths.append(script_dir+'hmdb_metabolites.xml')
 if 'msdial' in lib_types:
@@ -170,7 +168,7 @@ def read_lib(libpath):
                     frag_I.append(lsp[1])
                 lib_dict[ms1mz+' '+charge+' '+','.join(frag_mz)+' '+','.join(frag_I)+' '+','.join(adduct)+' NA'].append(name)
 
-    if 'MSDIAL-InsilicoMSMS-Lipids-' in libpath0:
+    if 'MSDIAL-TandemMassSpectralAtlas-' in libpath0:
         it_cpd=iter(line.rstrip() for line in open(libpath))
         for line in it_cpd:
             if line.startswith('NAME: '):
@@ -222,7 +220,7 @@ def read_lib(libpath):
                     frag_I.append(lsp[1])
                 if re.fullmatch("\d+\.\d{2,}",frag_mz[0]) is None: continue #remove if <n dp
                 lib_dict[ms1mz+' '+charge+' '+','.join(frag_mz)+' '+','.join(frag_I)+' '+','.join(adduct)+' NA'].append(name)
-    if '-VS12.msp' in libpath0 or libpath0.startswith('metabokit '):
+    if 'MSMS-Public-' in libpath0 or libpath0.startswith('metabokit '):
         if libpath0.startswith('metabokit '):
             libpath=libpath0.split(' ',1)[1]
             if not open(libpath):

@@ -21,7 +21,7 @@ param_set={
         }
 param_dict=commonfn.read_param(param_set)
 RT_shift=float(param_dict['RT_shift'])
-lib_types=param_dict["library"].splitlines()
+lib_types=[x.split(' #',1)[0].strip() for x in param_dict["library"].splitlines()]
 ms1ppm=float(param_dict['ms1_ppm'])/1e6
 adduct_list={x.split()[0][0:]:(float(x.split()[1]),int(x.split()[2][0]),x.split()[2][1]) for x in param_dict["adduct"].splitlines()}
 mzML_files=sorted(glob.glob(param_dict["mzML_files"]))
@@ -150,7 +150,7 @@ for key,names in sorted(mz_rt_name.items()):
         del mz_rt_name[key]
 
 def eligible_parent(x):
-    return(not x.startswith('ISF of '))and x.split('\n')[1].startswith(('M-H ','M+H ','M '))
+    return(not x.startswith('ISF of '))
 
 for key,names in sorted(mz_rt_name.items()):
     if any(x.startswith('ISF of ') for x in names) and all(not eligible_parent(x)for x in names):
