@@ -9,7 +9,7 @@ See the [manual](manual.pdf) for full documentation.
 ## Installing 
 
 ### Unix
-Installation of python3 (>=3.7) is required. Python scripts included [here](https://github.com/MetaboKit/MetaboKit/releases/). See for [commands.md](commands.md) usage.
+Installation of python3 (>=3.7) is required. Python scripts included [here](https://github.com/MetaboKit/MetaboKit/releases/latest). See for [commands.md](commands.md) usage.
 
 ### Windows
 
