@@ -12,8 +12,8 @@ import glob
 import concurrent.futures
 from array import array
 import time
-import cwt
-import commonfn
+import DDAcwt
+import DDAcommonfn
 
 start_time = time.time()
 
@@ -21,12 +21,12 @@ param_set={
         "mzML_files",
         }
 
-param_dict=commonfn.read_param(param_set)
+param_dict=DDAcommonfn.read_param(param_set)
 
 Point=collections.namedtuple('Point',('rt mz I'))
 
 def bin2float(node):
-    d=base64.b64decode(node.findtext("./{http://psi.hupo.org/ms/mzml}binary"))
+    d=base64.b64decode(node.findtext("{http://psi.hupo.org/ms/mzml}binary"))
     if node.find("*/[@accession='MS:1000574']") is not None:
         d=zlib.decompress(d)
     fmt='<{}f'.format(int(len(d)/4)) if node.find("*/[@accession='MS:1000523']") is None else '<{}d'.format(int(len(d)/8))
@@ -58,7 +58,7 @@ def print_eic_ms(mzML_file):
     ms1_scans=[]
     ms2_scans=[]
 
-    tree=ET.parse(open(mzML_file,'rb'))
+    tree=ET.parse(mzML_file)
 
     for element in tree.iter(tag='{http://psi.hupo.org/ms/mzml}spectrum'):
         if element.findtext(".//*{http://psi.hupo.org/ms/mzml}binary"):
@@ -153,7 +153,7 @@ def print_eic_ms(mzML_file):
 
     with open('ms1feature_'+basename0+'.txt','w') as writepeak:
         peak_list=[]
-        for peaks in map(cwt.findridge, cwt.get_EICs(basename0)):
+        for peaks in map(DDAcwt.findridge, DDAcwt.get_EICs(basename0)):
             peak_list.extend(peaks)
         
         peak_list.sort()
