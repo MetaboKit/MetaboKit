@@ -8,8 +8,10 @@ See the [manual](manual.pdf) for full documentation.
 
 ## Installing 
 
+<!---
 ### Unix
 Installation of python3 (>=3.7) is required. See for [commands.md](commands.md) usage.
+--->
 
 ### Windows
 
