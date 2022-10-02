@@ -15,8 +15,10 @@ Installation of python3 (>=3.7) is required. See for [commands.md](commands.md) 
 
 Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/MetaboKit/releases/latest).
 
+<!---
 ## Example parameter file
 [here](https://drive.google.com/drive/folders/1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1?usp=sharing)
+--->
 
 ## Example dataset
 
