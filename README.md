@@ -3,7 +3,9 @@
  
 <img src="Figure1.png" align="left">
 
+<!---
 See the [manual](manual.pdf) for full documentation.
+--->
 
 
 ## Installing 
