@@ -8,13 +8,6 @@ See the [manual](manual.pdf) for full documentation.
 --->
 
 
-## Installing 
-
-<!---
-### Unix
-Installation of python3 (>=3.7) is required. See for [commands.md](commands.md) usage.
---->
-
 ### Windows
 
 Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/MetaboKit/releases/latest).
@@ -24,9 +17,8 @@ Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/
 [here](https://drive.google.com/drive/folders/1XF2y4B_ISxGvO2Ni_CMA1vb_g2kxh2P1?usp=sharing)
 --->
 
-## Example dataset
-
-An example dataset [here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing).
+## Data
+Materials related to the [paper](https://doi.org/10.1039/D0MO00030B) [here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing).
 
 ## Bugs and Feedback
 
