@@ -1,17 +1,15 @@
+## Data
+Materials related to the [paper](https://doi.org/10.1039/D0MO00030B) \[[here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing)\].
+
+## Windows
+Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/MetaboKit/releases/latest).
+
 # MetaboKit
  MetaboKit: a new bioinformatics workflow for untargeted metabolomics analysis with DDA-MS and DIA-MS
  
 <img src="Figure1.png" align="left">
 
-## Windows
-
-Executables for 64-bit Windows are included [here](https://github.com/MetaboKit/MetaboKit/releases/latest).
-
-## Data
-Materials related to the [paper](https://doi.org/10.1039/D0MO00030B) \[[here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing)\].
-
 ## Bugs and Feedback
-
 For bugs, questions and discussions please use the [GitHub Issues](https://github.com/MetaboKit/metabokit/issues).
 
 <!---
