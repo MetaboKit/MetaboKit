@@ -1,3 +1,5 @@
+<img src="Metabokit logo.png" align="center">
+
 ## Data
 Materials related to the [paper](https://doi.org/10.1039/D0MO00030B) \[[here](https://drive.google.com/drive/folders/1u-n8ig2o-pqZujTmj03zgPi1Z9eLdzVc?usp=sharing)\].
 
